@@ -1,63 +1,100 @@
-const { name } = require('ejs');
 const express = require('express');
-const app = express();
 const mongoose = require('mongoose');
+
+const app = express();
+const PORT = process.env.PORT || 8000;
+
+app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 
-mongoose.connect('mongodb+srv://shubhamrastogibs_db_user:nwBtao2VHAMLZA7C@cluster0.hody6bc.mongodb.net/?appName=Cluster0/usersData').then(() => {
-    console.log('Connected');
-});
-const userSchema = mongoose.Schema({
-    name: {type: String, required: true},
-    email: {type: String, required: true}
-}, {timestamps: true})
+const todoSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    completed: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
 
-const User = mongoose.model('user', userSchema)
+const Todo = mongoose.model('Todo', todoSchema);
 
-
-app.listen(8000, ()=>{
-    console.log('app running on port 8000');
-});
-
-app.post('/users', async(req,res)=>{  
-    let {name, email}  = req.body;
-    let data = await User.create({
-        name: name,
-        email: email
+async function connectToDatabase() {
+  try {
+    await mongoose.connect('mongodb+srv://shubhamrastogibs_db_user:nwBtao2VHAMLZA7C@cluster0.hody6bc.mongodb.net/todos?appName=Cluster0', {
+      serverSelectionTimeoutMS: 10000,
     });
-    console.log(data)
-    return res.json('new user added')
+    console.log('Connected to MongoDB');
+  } catch (err) {
+    console.error('MongoDB connection failed:', err.message);
+    process.exit(1);
+  }
+}
+
+async function getTodos() {
+  return Todo.find({});
+}
+
+async function addTodo(title) {
+  return Todo.create({ title, completed: false });
+}
+
+async function toggleTodo(id) {
+  const todo = await Todo.findById(id);
+  if (!todo) return null;
+
+  todo.completed = !todo.completed;
+  await todo.save();
+  return todo;
+}
+
+async function deleteTodo(id) {
+  return Todo.findByIdAndDelete(id);
+}
+
+app.get('/', async (req, res) => {
+  try {
+    const todos = await getTodos();
+    res.render('index', { todos });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Something went wrong');
+  }
 });
 
-app.get('/users', async(req,res)=>{
-    let data = await User.find({})
-    console.log(data);
-    return res.json(data);
+app.post('/todos', async (req, res) => {
+  const title = req.body.title;
+  try {
+    await addTodo(title.trim());
+  } catch (error) {
+    console.error(error);
+  }
+
+  res.redirect('/');
 });
 
-app.get('/users/:id', async(req,res)=>{
-    let id = req.params.id;
-    let data = await User.findById(id);
-    console.log(data);
-    return res.json(data);
+app.post('/todos/:id/complete', async (req, res) => {
+  try {
+    await toggleTodo(req.params.id);
+  } catch (error) {
+    console.error(error);
+  }
+
+  res.redirect('/');
 });
 
-app.delete('/users/:id', async(req,res)=>{
-    let id = req.params.id;
-    let data = await User.findByIdAndDelete(id);
-    console.log(data);
-    return res.json(data);
+app.post('/todos/:id/delete', async (req, res) => {
+  try {
+    await deleteTodo(req.params.id);
+  } catch (error) {
+    console.error(error);
+  }
+
+  res.redirect('/');
 });
 
-app.patch('/users/:id', async(req,res)=>{
-    let id = req.params.id;
-    let data = await User.findByIdAndUpdate(id, {
-        name: req.body.name,
-        email: req.body.email
-    });
-    console.log(data);
-    return res.json(data);
+connectToDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`app running on port ${PORT}`);
+  });
 });
 
 

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Todo App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-slate-100 p-6 text-slate-800">
+    <div class="mx-auto max-w-xl rounded-2xl bg-white p-6 shadow-lg">
+      <h1 class="mb-4 text-2xl font-semibold">Simple Todo App</h1>
+      <form action="/todos" method="POST" class="mb-6 flex gap-2">
+        <input
+          type="text"
+          name="title"
+          placeholder="Enter a todo"
+          required
+          class="flex-1 rounded-lg border border-slate-300 px-3 py-2 outline-none ring-0 focus:border-blue-500"
+        />
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700">
+          Add
+        </button>
+      </form>
+
+      <h2 class="mb-3 text-lg font-medium">Your Todos</h2>
+      <% if (todos.length === 0) { %>
+        <p class="text-slate-500">No todos yet. Add one above.</p>
+      <% } else { %>
+        <ul class="space-y-2">
+          <% todos.forEach(function(todo) { %>
+            <li class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <div class="flex items-center gap-2">
+                <form action="/todos/<%= todo._id %>/complete" method="POST" class="m-0">
+                  <input
+                    type="checkbox"
+                    onchange="this.form.submit()"
+                    <%= todo.completed ? 'checked' : '' %>
+                  />
+                </form>
+                <span class="<%= todo.completed ? 'text-slate-400 line-through' : '' %>"><%= todo.title %></span>
+              </div>
+              <form action="/todos/<%= todo._id %>/delete" method="POST" class="m-0">
+                <button type="submit" class="rounded-md bg-red-500 px-2 py-1 text-sm text-white hover:bg-red-600">
+                  Delete
+                </button>
+              </form>
+            </li>
+          <% }); %>
+        </ul>
+      <% } %>
+    </div>
+  </body>
+</html>
